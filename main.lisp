@@ -4,6 +4,7 @@
 (defvar *screen-width* 1024)
 (defvar *screen-height* 768)
 (defvar *view* (glaw:create-2d-view 0 0 *screen-width* *screen-height*))
+(defvar *font* nil)
 
 (defvar *pad-speed* (/ *screen-width* 2.0))
 (defvar *ball-speed* 250.0)
@@ -76,7 +77,11 @@
     brick))
 
 (defstruct level
-  pad (balls '()) (bricks '()))
+  pad (balls '()) (bricks '())
+  (remaining-bricks 0))
+
+(defun finished-level (level)
+  (zerop (level-remaining-bricks level)))
 
 (defun create-level ()
   (let ((level (make-level :pad (create-pad (/ *screen-width* 2.0)
@@ -99,6 +104,7 @@
                                                             10.0) do
          (loop for y from 200.0 to (- *screen-height* 50.0) by (/ (- *screen-height* 150.0)
                                                                   10.0) do
+         (incf (level-remaining-bricks level))
          (push (create-brick x y
                              (/ (- *screen-width* 100.0) 10.0)
                              (/ (- *screen-height* 150.0) 10.0)
@@ -132,7 +138,9 @@
           (when (glaw:shape-intersect-p (ball-shape ball) bsh)
             (when (brick-destroyable b)
               (setf (level-bricks level)
-                    (remove b (level-bricks level))))
+                    (remove b (level-bricks level)))
+              (incf *score*)
+              (decf (level-remaining-bricks level)))
             (cond
              ((glaw:coords-overlap-p
                 (glaw:shape-y-min bsh) (glaw:shape-y-max bsh)
@@ -158,9 +166,11 @@
                                  (pad-x (level-pad level)))))
             (case (pad-direction (level-pad level))
               (:left (decf (ball-vx ball) pad-ctr-dist))
-              (:right (incf (ball-vx ball) pad-ctr-dist)))))))))
-
-
+              (:right (incf (ball-vx ball) pad-ctr-dist))))))
+      ;; ball vs. bottom
+      (when (< (ball-y ball) 0.0)
+        (decf *score*)
+        (setf (level-balls level) (remove ball (level-balls level)))))))
 
 (defun render-level (level)
   (gl:disable :texture-2d)
@@ -185,12 +195,20 @@
    (fire-ball it))
 
 ;; Main code
+
+(defvar *level* nil)
+(defvar *score* 0)
+
 (glaw:key-handler :global (#\Esc :press)
   (shutdown)
   (sdl:push-quit-event))
 
-(defvar *level* nil)
-(defvar *font* nil)
+(glaw:key-handler :global (#\Space :press)
+  (when (finished-level *level*)
+    (glaw:remove-input-handler *level*)
+    (setf *score* 0)
+    (setf *level* (create-level))
+    (glaw:add-input-handler *level*)))
 
 (defun init ()
   (setf *font* (glaw:create-font (glaw:create-resource "font.png" :image)
@@ -208,6 +226,17 @@
   (glaw:set-view-2d *view*)
   (glaw:begin-draw)
   (render-level *level*)
+  (if (finished-level *level*)
+      (progn (glaw:set-color/rgb 0 1 0)
+             (glaw:format-at (/ *screen-width* 2.0) (/ *screen-height* 2.0)
+                             *font* "Finished")
+             (glaw:set-color/rgb 1 0 0)
+             (glaw:format-at (/ *screen-width* 2.0) (- (/ *screen-height* 2.0) 20)
+                             *font* "Score: ~d" *score*)
+             (glaw:set-color/rgb 1 0 0)
+             (glaw:format-at (/ *screen-width* 2.0) (- (/ *screen-height* 2.0) 40)
+                             *font* "Esc to quit. Space to restart"))
+      (glaw:format-at 10 10 *font* "Score: ~d" *score*))
   (glaw:end-draw))
 
 (let ((last-update-time (get-internal-real-time)))
@@ -216,7 +245,8 @@
                             last-update-time))
            (dt (/ (* elapsed-time 1.0)
                   internal-time-units-per-second)))
-      (update-level *level* dt)
+      (unless (finished-level *level*)
+        (update-level *level* dt))
       (setf last-update-time (get-internal-real-time)))))
 
 (defun run ()
