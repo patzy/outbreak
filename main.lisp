@@ -17,7 +17,7 @@
 (defun create-pad (x y)
   (let ((pad (make-pad :x x :y y)))
     (setf (pad-shape pad) (glaw:create-rectangle-shape
-                             (- y 10) (- x 100) (+ y 10) (+ x 100)))
+                           (- x 100) (- y 10) (+ x 100) (+ y 10)))
     pad))
 
 (defun move-pad (pad speed)
@@ -72,8 +72,8 @@
   (let ((brick (make-brick :x x :y y :destroyable destroyable
                            :color color)))
     (setf (brick-shape brick) (glaw:create-rectangle-shape
-                               (- y (/ h 2.0)) (- x (/ w 2.0))
-                               (+ y (/ h 2.0)) (+ x (/ w 2.0))))
+                               (- x (/ w 2.0)) (- y (/ h 2.0))
+                               (+ x (/ w 2.0)) (+ y (/ h 2.0))))
     brick))
 
 (defstruct level
@@ -211,8 +211,9 @@
     (glaw:add-input-handler *level*)))
 
 (defun init ()
-  (setf *font* (glaw:create-font (glaw:create-resource "font.png" :image)
-                                 13 16))
+  (glaw:init-content-manager)
+  (glaw:load-asset "font.png" :texture)
+  (setf *font* (glaw:create-bitmap-font (glaw:use-resource "font.png") 13 16))
   (setf *level* (create-level))
   (glaw:add-input-handler *level*))
 
@@ -220,7 +221,7 @@
   (glaw:remove-input-handler *level*)
   (setf *level* nil)
   (glaw:destroy-font *font*)
-  (glaw:free-all-resources))
+  (glaw:shutdown-content-manager))
 
 (defun draw ()
   (glaw:set-view-2d *view*)
