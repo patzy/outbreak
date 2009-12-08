@@ -251,7 +251,7 @@
       (setf last-update-time (get-internal-real-time)))))
 
 (defun run ()
-  (sdl:with-init (sdl:sdl-init-video)
+  (sdl:with-init ()
     (sdl:window 800 600
                 :bpp 32
                 :flags '(sdl:sdl-opengl sdl:sdl-resizable
@@ -260,7 +260,7 @@
                 :title-caption "OutBreak"
                 :icon-caption "OutBreak")
     (setf (sdl:frame-rate) 120)
-    (sdl:enable-unicode t)
+    (sdl:enable-unicode)
     (sdl:enable-key-repeat nil nil)
     (glaw:setup-gl-defaults)
     (glaw:reshape 800 600)
