@@ -199,10 +199,6 @@
 (defvar *level* nil)
 (defvar *score* 0)
 
-(glaw:key-handler :global (#\Esc :press)
-  (shutdown)
-  (sdl:push-quit-event))
-
 (glaw:key-handler :global (#\Space :press)
   (when (finished-level *level*)
     (glaw:remove-input-handler *level*)
@@ -250,50 +246,40 @@
         (update-level *level* dt))
       (setf last-update-time (get-internal-real-time)))))
 
+(defmethod glop:on-key (window state key)
+  (glaw:dispatch-key-event key state)
+  (when (eql key #\Escape)
+    (glop:push-close-event window)))
+
+(defmethod glop:on-close (window)
+  (shutdown))
+
+(defmethod glop:on-button (window state button)
+  (glaw:dispatch-button-event :mouse button state))
+
+(defmethod glop:on-mouse-motion (window x y dx dy)
+  (glaw:update-mouse-position x y)
+  (glaw:dispatch-motion-event :mouse dx dy))
+
+(defmethod glop:on-draw (window)
+  (draw)
+  (glop:swap-buffers window))
+
+(defmethod glop:on-resize (window w h)
+  (glaw:reshape w h)
+  (draw)
+  (glop:swap-buffers window))
+
+
 (defun run ()
-  (sdl:with-init ()
-    (sdl:window 800 600
-                :bpp 32
-                :flags '(sdl:sdl-opengl sdl:sdl-resizable
-                         sdl:sdl-opengl sdl:sdl-hw-surface
-                         sdl:sdl-doublebuf)
-                :title-caption "OutBreak"
-                :icon-caption "OutBreak")
-    (setf (sdl:frame-rate) 120)
-    (sdl:enable-unicode)
-    (sdl:enable-key-repeat nil nil)
+  ;; how to get extensions
+  (setf cl-opengl-bindings:*gl-get-proc-address* 'glop:gl-get-proc-address)
+  (glop:with-window (win "OutBreak" 800 600)
     (glaw:setup-gl-defaults)
     (glaw:reshape 800 600)
     (init)
-    (sdl:with-events (:poll)
-      (:quit-event () t)
-      (:key-down-event (:key key :unicode code)
-          (glaw:dispatch-key-event (glaw-sdl:translate-key key code)
-                                   :press))
-      (:key-up-event (:key key :unicode code)
-          (glaw:dispatch-key-event (glaw-sdl:translate-key key code)
-                                   :release))
-      (:mouse-button-down-event (:button button :state state :x x :y y)
-          (glaw:dispatch-button-event :mouse
-                                      (glaw-sdl:translate-mouse-button button)
-                                      :press))
-      (:mouse-button-up-event (:button button :state state :x x :y y)
-          (glaw:dispatch-button-event :mouse
-                                      (glaw-sdl:translate-mouse-button button)
-                                      :release))
-      (:mouse-motion-event (:x x :y y :x-rel x-rel :y-rel y-rel)
-          (glaw:update-mouse-position x y)
-          (glaw:dispatch-motion-event :mouse x-rel y-rel))
-      (:video-expose-event ()
-          (draw)
-          (sdl:update-display))
-      (:video-resize-event (:w w :h h)
-          (sdl:resize-window w h)
-          (glaw:reshape w h)
-          (draw)
-          (sdl:update-display))
-      (:idle ()
-          (idle)
-          (draw)
-          (sdl:update-display)))))
+    (loop while (glop:dispatch-events win :blocking nil) do
+         (idle)
+         (draw)
+         (glop:swap-buffers win))))
 

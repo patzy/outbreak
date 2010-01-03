@@ -2,7 +2,7 @@
 
 (defsystem outbreak
   :description "Breakout clone"
-  :depends-on (glaw glaw-sdl lispbuilder-sdl)
+  :depends-on (glaw glaw-imago glop)
   :serial t
   :components
   ((:file "package")
