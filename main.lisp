@@ -255,7 +255,7 @@
   (shutdown))
 
 (defmethod glop:on-button (window state button)
-  (glaw:dispatch-button-event :mouse button state))
+  (glaw:dispatch-button-event :mouse (glaw:translate-mouse-button button) state))
 
 (defmethod glop:on-mouse-motion (window x y dx dy)
   (glaw:update-mouse-position x y)
