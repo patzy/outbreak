@@ -27,17 +27,17 @@
     (:right (incf (pad-x pad) speed)
            (glaw:translate-shape (pad-shape pad) speed 0))))
 
-(glaw:key-handler (it pad) (:key-left :press)
+(glaw:key-handler (it pad) (:left :press)
    (setf (pad-direction it) :left))
 
-(glaw:key-handler (it pad) (:key-left :release)
+(glaw:key-handler (it pad) (:left :release)
    (when (eq (pad-direction it) :left)
      (setf (pad-direction it) nil)))
 
-(glaw:key-handler (it pad) (:key-right :press)
+(glaw:key-handler (it pad) (:right :press)
    (setf (pad-direction it) :right))
 
-(glaw:key-handler (it pad) (:key-right :release)
+(glaw:key-handler (it pad) (:right :release)
    (when (eq (pad-direction it) :right)
      (setf (pad-direction it) nil)))
 
@@ -191,7 +191,7 @@
     (move-ball b dt))
   (check-collisions level))
 
-(glaw:key-handler (it level) (#\Space :press)
+(glaw:key-handler (it level) (:space :press)
    (fire-ball it))
 
 ;; Main code
@@ -199,7 +199,7 @@
 (defvar *level* nil)
 (defvar *score* 0)
 
-(glaw:key-handler :global (#\Space :press)
+(glaw:key-handler :global (:space :press)
   (when (finished-level *level*)
     (glaw:remove-input-handler *level*)
     (setf *score* 0)
@@ -246,16 +246,17 @@
         (update-level *level* dt))
       (setf last-update-time (get-internal-real-time)))))
 
-(defmethod glop:on-key (window state key)
-  (glaw:dispatch-key-event key state)
-  (when (eql key #\Escape)
+(defmethod glop:on-key (window pressed keycode keysym string)
+  (glaw:dispatch-key-event keysym (if pressed :press :release) keycode string)
+  (when (eql keysym :escape)
     (glop:push-close-event window)))
 
 (defmethod glop:on-close (window)
   (shutdown))
 
-(defmethod glop:on-button (window state button)
-  (glaw:dispatch-button-event :mouse (glaw:translate-mouse-button button) state))
+(defmethod glop:on-button (window pressed button)
+  (glaw:dispatch-button-event :mouse (glaw:translate-mouse-button button)
+                              (if pressed :press :release)))
 
 (defmethod glop:on-mouse-motion (window x y dx dy)
   (glaw:update-mouse-position x y)
