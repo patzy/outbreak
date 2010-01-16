@@ -208,15 +208,15 @@
 
 (defun init ()
   (glaw:init-content-manager (asdf:system-relative-pathname :outbreak #P""))
-  (glaw:load-asset "font.png" :texture)
-  (setf *font* (glaw:create-bitmap-font (glaw:use-resource "font.png") 13 16))
+  (glaw:load-asset "font.png" :bitmap-font)
+  (setf *font* (glaw:use-resource "font.png"))
   (setf *level* (create-level))
   (glaw:add-input-handler *level*))
 
 (defun shutdown ()
   (glaw:remove-input-handler *level*)
   (setf *level* nil)
-  (glaw:destroy-font *font*)
+  (glaw:dispose-asset "font.png")
   (glaw:shutdown-content-manager))
 
 (defun draw ()
