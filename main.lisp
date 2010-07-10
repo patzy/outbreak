@@ -12,12 +12,14 @@
 (defstruct pad
   x y
   (direction nil)
-  shape)
+  shape
+  (bbox (glaw:make-bbox)))
 
 (defun create-pad (x y)
   (let ((pad (make-pad :x x :y y)))
     (setf (pad-shape pad) (glaw:create-rectangle-shape
                            (- x 100) (- y 10) (+ x 100) (+ y 10)))
+    (glaw:bbox-update/shape (pad-bbox pad) (pad-shape pad))
     pad))
 
 (defun move-pad (pad speed)
@@ -25,7 +27,9 @@
     (:left (decf (pad-x pad) speed)
            (glaw:translate-shape (pad-shape pad) (- speed) 0))
     (:right (incf (pad-x pad) speed)
-           (glaw:translate-shape (pad-shape pad) speed 0))))
+           (glaw:translate-shape (pad-shape pad) speed 0)))
+  (when (pad-direction pad)
+    (glaw:bbox-overwrite/shape (pad-bbox pad) (pad-shape pad))))
 
 (glaw:key-handler (it pad) (:left :press)
    (setf (pad-direction it) :left))
@@ -45,12 +49,14 @@
   x y radius
   old-x old-y
   (vx 0.0) (vy 0.0)
-  shape)
+  shape
+  (bbox (glaw:make-bbox)))
 
 (defun create-ball (x y radius)
   (let ((ball (make-ball :x x :y y :radius radius
                          :old-x x :old-y y)))
     (setf (ball-shape ball) (glaw:create-circle-shape x y radius))
+    (glaw:bbox-update/shape (ball-bbox ball) (ball-shape ball))
     ball))
 
 (defun move-ball (ball dt)
@@ -59,13 +65,15 @@
   (incf (ball-x ball) (* (ball-vx ball) dt))
   (incf (ball-y ball) (* (ball-vy ball) dt))
   (glaw:translate-shape (ball-shape ball)
-                        (* (ball-vx ball) dt) (* (ball-vy ball) dt)))
+                        (* (ball-vx ball) dt) (* (ball-vy ball) dt))
+  (glaw:bbox-overwrite/shape (ball-bbox ball) (ball-shape ball)))
 
 (defstruct brick
   x y
   destroyable
   color
-  shape)
+  shape
+  (bbox (glaw:make-bbox)))
 
 (defun create-brick (x y w h &key (color (glaw:create-color 0.7 0.7 0.7 1.0))
                                   (destroyable t))
@@ -74,6 +82,7 @@
     (setf (brick-shape brick) (glaw:create-rectangle-shape
                                (- x (/ w 2.0)) (- y (/ h 2.0))
                                (+ x (/ w 2.0)) (+ y (/ h 2.0))))
+    (glaw:bbox-update/shape (brick-bbox brick) (brick-shape brick))
     brick))
 
 (defstruct level
@@ -131,11 +140,11 @@
   (dolist (ball (level-balls level))
     (let ((dx (- (ball-x ball) (ball-old-x ball)))
           (dy (- (ball-y ball) (ball-old-y ball)))
-          (sh (ball-shape ball)))
+          (sh (ball-bbox ball)))
       ;; ball vs. brick
       (dolist (b (level-bricks level))
-        (let ((bsh (brick-shape b)))
-          (when (glaw:shape-intersect-p (ball-shape ball) bsh)
+        (let ((bsh (brick-bbox b)))
+          (when (glaw:bbox-intersect-p (ball-bbox ball) bsh)
             (when (brick-destroyable b)
               (setf (level-bricks level)
                     (remove b (level-bricks level)))
@@ -143,24 +152,24 @@
               (decf (level-remaining-bricks level)))
             (cond
              ((glaw:coords-overlap-p
-                (glaw:shape-y-min bsh) (glaw:shape-y-max bsh)
-                (- (glaw:shape-y-min sh) dy)  (- (glaw:shape-y-max sh) dy))
+                (glaw:bbox-y-min bsh) (glaw:bbox-y-max bsh)
+                (- (glaw:bbox-y-min sh) dy)  (- (glaw:bbox-y-max sh) dy))
                (setf (ball-vx ball) (- (ball-vx ball))))
               ((glaw:coords-overlap-p
-                (glaw:shape-x-min bsh) (glaw:shape-x-max bsh)
-                (- (glaw:shape-x-min sh) dx)  (- (glaw:shape-x-max sh) dx))
+                (glaw:bbox-x-min bsh) (glaw:bbox-x-max bsh)
+                (- (glaw:bbox-x-min sh) dx)  (- (glaw:bbox-x-max sh) dx))
                (setf (ball-vy ball) (- (ball-vy ball))))))))
       ;; ball vs. pad
-      (let ((psh (pad-shape (level-pad level))))
-        (when (glaw:shape-intersect-p (ball-shape ball) psh)
+      (let ((psh (pad-bbox (level-pad level))))
+        (when (glaw:bbox-intersect-p (ball-bbox ball) psh)
           (cond
             ((glaw:coords-overlap-p
-                (glaw:shape-y-min psh) (glaw:shape-y-max psh)
-                (- (glaw:shape-y-min sh) dy)  (- (glaw:shape-y-max sh) dy))
+                (glaw:bbox-y-min psh) (glaw:bbox-y-max psh)
+                (- (glaw:bbox-y-min sh) dy)  (- (glaw:bbox-y-max sh) dy))
                (setf (ball-vx ball) (- (ball-vx ball))))
               ((glaw:coords-overlap-p
-                (glaw:shape-x-min psh) (glaw:shape-x-max psh)
-                (- (glaw:shape-x-min sh) dx)  (- (glaw:shape-x-max sh) dx))
+                (glaw:bbox-x-min psh) (glaw:bbox-x-max psh)
+                (- (glaw:bbox-x-min sh) dx)  (- (glaw:bbox-x-max sh) dx))
                (setf (ball-vy ball) (- (ball-vy ball)))))
           (let ((pad-ctr-dist (- (ball-x ball)
                                  (pad-x (level-pad level)))))
@@ -183,7 +192,7 @@
     (glaw:set-color (brick-color b))
     (glaw:render-shape (brick-shape b))
     (glaw:set-color/rgb 1 1 1)
-    (glaw:render-bbox (brick-shape b))))
+    (glaw:render-bbox (brick-bbox b))))
 
 (defun update-level (level dt)
   (move-pad (level-pad level) (* *pad-speed* dt))
