@@ -251,9 +251,9 @@
                             last-update-time))
            (dt (/ (* elapsed-time 1.0)
                   internal-time-units-per-second)))
+      (setf last-update-time (get-internal-real-time))
       (unless (finished-level *level*)
-        (update-level *level* dt))
-      (setf last-update-time (get-internal-real-time)))))
+        (update-level *level* dt)))))
 
 (defmethod glop:on-key (window pressed keycode keysym string)
   (glaw:dispatch-key-event keysym (if pressed :press :release) keycode string)
