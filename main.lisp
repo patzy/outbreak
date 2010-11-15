@@ -216,8 +216,8 @@
     (glaw:add-input-handler *level*)))
 
 (defun init ()
-  (glaw:init-content-manager (asdf:system-relative-pathname :outbreak #P""))
-  (glaw:load-asset "font.png" :fixed-bitmap-font)
+  (glaw:init-content-manager)
+  (glaw:load-asset "font.png" :font)
   (setf *font* (glaw:use-resource "font.png"))
   (setf *level* (create-level))
   (glaw:add-input-handler *level*))
