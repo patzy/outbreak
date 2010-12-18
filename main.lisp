@@ -285,7 +285,7 @@
   ;; how to get extensions
   (setf cl-opengl-bindings:*gl-get-proc-address* 'glop:gl-get-proc-address)
   (glop:with-window (win "OutBreak" 800 600)
-    (glaw:setup-gl-defaults)
+    (glaw:setup-2d-defaults)
     (glaw:reshape 800 600)
     (init)
     (loop while (glop:dispatch-events win :blocking nil) do
